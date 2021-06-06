@@ -68,6 +68,21 @@ class NonLinearProbe4(nn.Module):
         x = self.relu2(x)
         return self.linear3(x)
 
+class NonLinearProbe5(nn.Module):
+    def __init__(self, input_dim, num_hidden=300, num_classes=255):
+        super().__init__()
+        self.linear1 = nn.Linear(in_features=input_dim, out_features=num_hidden)
+        self.relu = nn.ReLU()
+        self.linear2 = nn.Linear(in_features=num_hidden, out_features=num_classes)
+        self.bn = nn.BatchNorm1d(num_hidden)
+
+    def forward(self, feature_vectors):
+        x = self.linear1(feature_vectors)
+        x = self.relu(x)
+        x = self.bn(x)
+        return self.linear2(x)
+
+
 class LstmProbe(nn.Module):
     def __init__(self, input_dim, n_layers=2, n_hidden=300, num_classes=255):
         super().__init__()
@@ -78,8 +93,18 @@ class LstmProbe(nn.Module):
         out =  self.lstm(feature_vectors)
         return self.linear(out)
 
+class LstmProbe2(nn.Module):
+    def __init__(self, input_dim, n_layers=3, n_hidden=1024, num_classes=255):
+        super().__init__()
+        self.lstm = nn.LSTM(input_dim, n_hidden, n_layers, batch_first=True)
+        self.linear = nn.Linear(n_hidden, num_classes)
+
+    def forward(self, feature_vectors):
+        out =  self.lstm(feature_vectors)
+        return self.linear(out)
+      
 class LstmProbe3(nn.Module):
-    def __init__(self, input_dim, n_layers=6, n_hidden=1024, num_classes=255):
+    def __init__(self, input_dim, n_layers=6, n_hidden=2048, num_classes=255):
         super().__init__()
         self.lstm = nn.LSTM(input_dim, n_hidden, n_layers, batch_first=True)
         self.linear = nn.Linear(n_hidden, num_classes)
@@ -161,14 +186,24 @@ class ProbeTrainer():
                                           num_classes=self.num_classes).to(self.device) for k in sample_label.keys()}
 
             self.load_probe_checkpoints(self.save_dir, to_train=True)
+            
         elif self.probe_type=='lstm':
             self.probes = {k: LstmProbe(input_dim=self.feature_size,
                                           num_classes=self.num_classes).to(self.device) for k in sample_label.keys()}
-        elif self.probe_type=='lstm3':
+            self.load_probe_checkpoints(self.save_dir, to_train=True)
+            
+        elif self.probe_type=='lstm-2':
+            self.probes = {k: LstmProbe2(input_dim=self.feature_size,
+                                          num_classes=self.num_classes).to(self.device) for k in sample_label.keys()}
+
+            self.load_probe_checkpoints(self.save_dir, to_train=True)
+            
+        elif self.probe_type=='lstm-3':
             self.probes = {k: LstmProbe3(input_dim=self.feature_size,
                                           num_classes=self.num_classes).to(self.device) for k in sample_label.keys()}            
 
             self.load_probe_checkpoints(self.save_dir, to_train=True)
+            
         elif self.probe_type=='non-linear-1':
             self.probes = {k: NonLinearProbe1(input_dim=self.feature_size,
                                           num_classes=self.num_classes).to(self.device) for k in sample_label.keys()}
@@ -189,6 +224,12 @@ class ProbeTrainer():
         
         elif self.probe_type=='non-linear-4':
             self.probes = {k: NonLinearProbe4(input_dim=self.feature_size,
+                                          num_classes=self.num_classes).to(self.device) for k in sample_label.keys()}
+
+            self.load_probe_checkpoints(self.save_dir, to_train=True)
+        
+        elif self.probe_type=='non-linear-5':
+            self.probes = {k: NonLinearProbe5(input_dim=self.feature_size,
                                           num_classes=self.num_classes).to(self.device) for k in sample_label.keys()}
 
             self.load_probe_checkpoints(self.save_dir, to_train=True)
